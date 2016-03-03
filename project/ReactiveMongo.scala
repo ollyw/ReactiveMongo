@@ -159,7 +159,7 @@ object ReactiveMongoBuild extends Build {
     Project(
       s"$projectPrefix-Root",
       file("."),
-      settings = buildSettings ++ (publishArtifact := false, autoSourceHeader := false) ).
+      settings = buildSettings ++ Seq(publishArtifact := false, autoSourceHeader := false) ).
     settings(UnidocPlugin.unidocSettings: _*).
     enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning).
     aggregate(driver, bson, bsonmacros)

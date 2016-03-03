@@ -1,6 +1,6 @@
-import _root_.Common._
-import _root_.DriverSpec._
-import _root_.proxy.SleepyProxy
+import Common._
+//import reactivemongo.core.errors.GenericDriverException
+
 import reactivemongo.core.errors.GenericDriverException
 
 import scala.concurrent.{ Future, Await }
@@ -172,7 +172,8 @@ object MongoDriverSpec extends org.specs2.mutable.Specification {
           ctx.setSleepTime(600)
 
           Await.result(_db.drop, timeout) must throwA[GenericDriverException](message = "socket disconnected")
-        } finally {
+        }
+        finally {
           connection.close()
           driver.close()
           ctx.shutDown()

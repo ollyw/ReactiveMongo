@@ -1,6 +1,9 @@
 package reactivemongo.core.nodeset
 
-import java.util.concurrent.{ Executor, Executors }
+import java.util.concurrent.{ TimeUnit, Executor, Executors }
+
+import org.jboss.netty.handler.timeout.IdleStateHandler
+import org.jboss.netty.util.HashedWheelTimer
 
 import scala.collection.generic.CanBuildFrom
 
