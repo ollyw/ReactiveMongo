@@ -361,10 +361,12 @@ class RoundRobiner[A, M[T] <: Iterable[T]](val subject: M[A], startAtIndex: Int 
 class ChannelFactory(options: MongoConnectionOptions, bossExecutor: Executor = Executors.newCachedThreadPool, workerExecutor: Executor = Executors.newCachedThreadPool) {
   import javax.net.ssl.{ KeyManager, SSLContext }
 
+  private val timer = new HashedWheelTimer()
+
   private val logger = LazyLogger("reactivemongo.core.nodeset.ChannelFactory")
 
   def create(host: String = "localhost", port: Int = 27017, receiver: ActorRef) = {
-    val channel = makeChannel(receiver)
+    val channel = makeChannel(receiver, options.socketTimeoutMS)
     logger.trace("created a new channel: " + channel)
     channel
   }
@@ -373,8 +375,10 @@ class ChannelFactory(options: MongoConnectionOptions, bossExecutor: Executor = E
 
   private val bufferFactory = new HeapChannelBufferFactory(java.nio.ByteOrder.LITTLE_ENDIAN)
 
-  private def makePipeline(receiver: ActorRef): ChannelPipeline = {
-    val pipeline = Channels.pipeline(new ResponseFrameDecoder(),
+  private def makePipeline(receiver: ActorRef, timeoutMS: Int): ChannelPipeline = {
+    val idleHandler = new IdleStateHandler(timer, timeoutMS, timeoutMS, 0, TimeUnit.MILLISECONDS)
+
+    val pipeline = Channels.pipeline(idleHandler, new ResponseFrameDecoder(),
       new ResponseDecoder(), new RequestEncoder(), new MongoHandler(receiver))
 
     if (options.sslEnabled) {
@@ -402,8 +406,8 @@ class ChannelFactory(options: MongoConnectionOptions, bossExecutor: Executor = E
     pipeline
   }
 
-  private def makeChannel(receiver: ActorRef): Channel = {
-    val channel = channelFactory.newChannel(makePipeline(receiver))
+  private def makeChannel(receiver: ActorRef, timeoutMS: Int): Channel = {
+    val channel = channelFactory.newChannel(makePipeline(receiver, timeoutMS))
     val config = channel.getConfig
 
     config.setTcpNoDelay(options.tcpNoDelay)

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,6 +23,7 @@ import org.jboss.netty.channel._
 import org.jboss.netty.channel.socket.nio._
 import org.jboss.netty.handler.codec.oneone._
 import org.jboss.netty.handler.codec.frame.FrameDecoder
+import org.jboss.netty.handler.timeout.{ IdleStateEvent, IdleStateAwareChannelHandler }
 import reactivemongo.core.actors.{ ChannelConnected, ChannelClosed, ChannelDisconnected }
 import reactivemongo.api.SerializationPack
 import reactivemongo.api.commands.GetLastError
@@ -393,7 +394,7 @@ private[reactivemongo] class ResponseDecoder extends OneToOneDecoder {
   }
 }
 
-private[reactivemongo] class MongoHandler(receiver: ActorRef) extends SimpleChannelHandler {
+private[reactivemongo] class MongoHandler(receiver: ActorRef) extends IdleStateAwareChannelHandler {
   import MongoHandler._
 
   override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
@@ -426,6 +427,11 @@ private[reactivemongo] class MongoHandler(receiver: ActorRef) extends SimpleChan
   }
   override def exceptionCaught(ctx: org.jboss.netty.channel.ChannelHandlerContext, e: org.jboss.netty.channel.ExceptionEvent) {
     log(e, s"CHANNEL ERROR: ${e.getCause}")
+  }
+
+  override def channelIdle(ctx: ChannelHandlerContext, e: IdleStateEvent) = {
+    log(e, s"channel timeout")
+    receiver ! ChannelClosed(e.getChannel.getId)
   }
 
   def log(e: ChannelEvent, s: String) =

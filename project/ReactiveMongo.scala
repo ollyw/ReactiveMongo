@@ -2,6 +2,7 @@ import sbt._
 import sbt.Keys._
 import uk.gov.hmrc.SbtAutoBuildPlugin
 import uk.gov.hmrc.versioning.SbtGitVersioning
+import uk.gov.hmrc.gitstamp.GitStamp._
 import scala.language.postfixOps
 
 object BuildSettings {
@@ -150,6 +151,7 @@ object ReactiveMongoBuild extends Build {
   import Resolvers._
   import Dependencies._
   import sbtunidoc.{ Plugin => UnidocPlugin }
+  import SbtAutoBuildPlugin.autoSourceHeader
 
   val projectPrefix = "ReactiveMongo"
 
@@ -157,7 +159,7 @@ object ReactiveMongoBuild extends Build {
     Project(
       s"$projectPrefix-Root",
       file("."),
-      settings = buildSettings ++ (publishArtifact := false) ).
+      settings = buildSettings ++ (publishArtifact := false, autoSourceHeader := false) ).
     settings(UnidocPlugin.unidocSettings: _*).
     enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning).
     aggregate(driver, bson, bsonmacros)
@@ -167,6 +169,7 @@ object ReactiveMongoBuild extends Build {
     file("driver"),
     settings = buildSettings ++ Seq(
       resolvers := resolversList,
+      autoSourceHeader := false,
       libraryDependencies ++= Seq(
         netty,
         akkaActor,
@@ -180,23 +183,25 @@ object ReactiveMongoBuild extends Build {
         type M = { def closeDriver(): Unit }
         val m: M = c.getField("MODULE$").get(null).asInstanceOf[M]
         m.closeDriver()
-      }))).dependsOn(bsonmacros)
+      }))).dependsOn(bsonmacros).enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning)
+
 
   lazy val bson = Project(
     s"$projectPrefix-BSON",
     file("bson"),
-    settings = buildSettings).
-    settings(libraryDependencies += specs)
+    settings = buildSettings ++ Seq(autoSourceHeader := false)).
+    settings(libraryDependencies += specs).enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning)
 
   lazy val bsonmacros = Project(
     s"$projectPrefix-BSON-Macros",
     file("macros"),
     settings = buildSettings ++ Seq(
+      SbtAutoBuildPlugin.autoSourceHeader := false,
       libraryDependencies +=
         "org.scala-lang" % "scala-compiler" % scalaVersion.value
     )).
     settings(libraryDependencies += specs).
-    dependsOn(bson)
+    dependsOn(bson).enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning)
 }
 
 object Travis {
