@@ -100,6 +100,7 @@ class SleepyProxyInboundHandler(cf: ClientSocketChannelFactory, remoteHost: Stri
     if (outboundChannel != null) {
       closeOnFlush(outboundChannel)
     }
+    println("channel closed")
   }
 
   @throws(classOf[Exception])
